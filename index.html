@@ -77,16 +77,23 @@
     <div class="api-description">
         <h3 class="red">Hierbei handelt es sich um ein Studenten-Projekt der DHBW-Mannheim. Diese Seite ist nicht zur produktiven Nutzung vorgesehen!</h3>
         <h2>API Beschreibung</h2>
-        <p>Die Moviemate API ist speziell fuer Kinos entwickelt und hilft dabei, den Besuchern personalisierte Filmauswahlen zu praesentieren. Basierend auf den zuvor eingegebenen Daten und Praeferenzen der Benutzer, schlaegt die API Filme vor, die dem individuellen Geschmack der Besucher entsprechen. Diese API kann nahtlos in Kino-Websites integriert werden und verbessert das Benutzererlebnis durch personalisierte Empfehlungen.</p>
+        <p>Die Moviemate API ist speziell f&uumlr Kinos entwickelt und hilft dabei, den Besuchern personalisierte Filmauswahlen zu pr&aumlsentieren. Basierend auf den zuvor eingegebenen Daten und Pr&aumlferenzen der Benutzer, schl&aumlgt die API Filme vor, die dem individuellen Geschmack der Besucher entsprechen. Diese API kann nahtlos in Kino-Websites integriert werden und verbessert das Benutzererlebnis durch personalisierte Empfehlungen.</p>
+        <p>Diese API ist vollkommen kostenlos</p>
+    
     </div>
 
     <div class="code-block">
         <code>
             <!-- Placeholder für die API-Dokumentation -->
-            GET /api/data<br>
+            POST /api/data<br>
             Host: moviemate.mabu2807.de<br>
             Content-Type: application/json
         </code>
+    </div>
+    <div class="placeholder-list">
+        <ul>
+            <li>Es ist werder Cors noch eine Authenifizierung notwendig</li>
+        </ul>
     </div>
     <div class="example-request">
         <h2>Beispie Request-Body</h2>
@@ -135,15 +142,14 @@
     <div class="placeholder-list">
         <h2>Hinweise</h2>
         <ul>
-            <li>Die Daten der User muessen selbst erhoben werden!</li>
-            <li>Um so mehr Daten uebermittelt werden, umso genauer ist die Vohersage!</li>
-            <li><!-- Placeholder für Stichpunkt 3 --></li>
+            <li>Die Daten der User m&uumlssen selbst erhoben werden!</li>
+            <li>Um so mehr Daten &Uumlbermittelt werden, umso genauer ist die Vohersage!</li>
+            <li>Bei der movieId k&oumlnnen sie ihre eigene ID aus der Datenbank mitgeben. Diese ist ausschlie&szliglich dazu da, damit Sie die Filme Scorings nach erhalten der Response Ihren Filmen zuordnen k&oumlnnen.</li>
         </ul>
     </div>
 
     <div class="impressum">
         <footer>
-            <p>&copy; 2024 Moviemate AI. Alle Rechte vorbehalten.</p>
             <p>Kontakt: s212532@student.dhbw-mannheim.de</p>
         </footer>
     </div>

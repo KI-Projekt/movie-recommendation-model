@@ -44,11 +44,18 @@ def home():
         return file.read()
 
 
-@app.route("/api/data", methods=["GET"])
+@app.route("/api/data", methods=["POST"])
 def get_data():
     recieved_data = request.json
     print(recieved_data)
     return jsonify(response_test)
+
+
+@app.route("/api/train", methods=["POST"])
+def train_model():
+    recieved_data = request.json
+    print(recieved_data)
+    return jsonify({"message": "Model trained successfully"})
 
 
 if __name__ == "__main__":
