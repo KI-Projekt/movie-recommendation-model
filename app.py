@@ -40,14 +40,22 @@ response_test = [
 
 @app.route("/")
 def home():
-    return "<h1>Willkommen bei MoviemateAI!</h1><p>Hierbei handelt es sich um eine einfache REST-API, für ein Studentenprojekt der DHBW Mannheim. Alle weiteren Infos findest du auf unserem <a href='https://github.com/KI-Projekt/KI-Doku'>Github</a>!!</p>"
+    with open("index.html") as file:
+        return file.read()
 
 
-@app.route("/api/data", methods=["GET"])
+@app.route("/api/data", methods=["POST"])
 def get_data():
     recieved_data = request.json
     print(recieved_data)
     return jsonify(response_test)
+
+
+@app.route("/api/train", methods=["POST"])
+def train_model():
+    recieved_data = request.json
+    print(recieved_data)
+    return jsonify({"message": "Model trained successfully"})
 
 
 if __name__ == "__main__":

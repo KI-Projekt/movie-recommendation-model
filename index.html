@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moviemate AI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header img {
+            width: 50px;
+            height: 50px;
+        }
+        h1 {
+            color: #007BFF;
+            text-align: center;
+            flex-grow: 1;
+            margin-left: 10px;
+        }
+        .explanation, .api-description, .example-request, .placeholder-list, .impressum {
+            margin-bottom: 20px;
+        }
+        .code-block {
+            background: #272822;
+            color: #f8f8f2;
+            padding-left: 20px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', Courier, monospace;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        .json-code {
+            background: #2d2d2d;
+            color: #dcdcaa;
+        }
+        .red {
+            color: red;
+        }
+        ul {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.9em;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <!-- <img src="./logo.png" alt="Logo"> -->
+        <h1>Moviemate AI</h1>
+    </div>
+
+    <div class="api-description">
+        <h3 class="red">Hierbei handelt es sich um ein Studenten-Projekt der DHBW-Mannheim. Diese Seite ist nicht zur produktiven Nutzung vorgesehen!</h3>
+        <h2>API Beschreibung</h2>
+        <p>Die Moviemate API ist speziell f&uumlr Kinos entwickelt und hilft dabei, den Besuchern personalisierte Filmauswahlen zu pr&aumlsentieren. Basierend auf den zuvor eingegebenen Daten und Pr&aumlferenzen der Benutzer, schl&aumlgt die API Filme vor, die dem individuellen Geschmack der Besucher entsprechen. Diese API kann nahtlos in Kino-Websites integriert werden und verbessert das Benutzererlebnis durch personalisierte Empfehlungen.</p>
+        <p>Diese API ist vollkommen kostenlos</p>
+    
+    </div>
+
+    <div class="code-block">
+        <code>
+            <!-- Placeholder für die API-Dokumentation -->
+            POST /api/data<br>
+            Host: moviemate.mabu2807.de<br>
+            Content-Type: application/json
+        </code>
+    </div>
+    <div class="placeholder-list">
+        <ul>
+            <li>Es ist werder Cors noch eine Authenifizierung notwendig</li>
+        </ul>
+    </div>
+    <div class="example-request">
+        <h2>Beispie Request-Body</h2>
+        <div class="code-block">
+            <code>
+                body: {
+                    "movies": [
+                        {
+                            "movieId": '' // ID des Films als Integer oder UUID, 
+                            "title": "Muster Titel",
+                            "genres": "Adventure, Animation, ..." // Genres als String getrennt durch Komma,
+                            "description": "Movie description" // Beschreibung des Films als String,
+                        },
+                    ],
+                    "user":{
+                        "genres": ["Adventure", "Animation", "Children", "Comedy", "Fantasy", ...] // Genres als Array von Strings,
+                        "ratings": [
+                            {"movieTitle": 1, "rating": 5},
+                            ...
+                        ]
+                        // Bewertungen als Array von Objekten mit movieTitle und rating
+                    }
+                }
+            </code>
+        </div>
+    </div>
+    <h2>Bespiel Response</h2>
+    <div class="code-block json-code">
+        <code>
+{
+    movies: [
+        {"movieId": 1 // integer oder UUID, "score": 19 // Integer},
+        {"movieId": 2, "score": 85},
+        {"movieId": 3, "score": 97},
+        {"movieId": 4, "score": 5},
+        {"movieId": 5, "score": 50},
+        {"movieId": 6, "score": 90},
+    ]
+        
+}
+        </code>
+    </div>
+
+    
+
+    <div class="placeholder-list">
+        <h2>Hinweise</h2>
+        <ul>
+            <li>Die Daten der User m&uumlssen selbst erhoben werden!</li>
+            <li>Um so mehr Daten &Uumlbermittelt werden, umso genauer ist die Vohersage!</li>
+            <li>Bei der movieId k&oumlnnen sie ihre eigene ID aus der Datenbank mitgeben. Diese ist ausschlie&szliglich dazu da, damit Sie die Filme Scorings nach erhalten der Response Ihren Filmen zuordnen k&oumlnnen.</li>
+        </ul>
+    </div>
+
+    <div class="impressum">
+        <footer>
+            <p>Kontakt: s212532@student.dhbw-mannheim.de</p>
+        </footer>
+    </div>
+</div>
+
+</body>
+</html>
