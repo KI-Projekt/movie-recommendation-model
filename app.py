@@ -1,16 +1,47 @@
 from flask import Flask, jsonify, request
+from utils.make_recommendations import process_data
+from utils.train_models import train_model
+
 
 app = Flask(__name__)
 
-# So sollte der return am Ende aussehen
+# Beispiel-Response
 response_test = [
-    {"movieId": 1, "score": 19},
-    {"movieId": 2, "score": 85},
-    {"movieId": 3, "score": 97},
-    {"movieId": 4, "score": 5},
-    {"movieId": 5, "score": 50},
-    {"movieId": 6, "score": 90},
+    {"externalId": 1, "movieTitle": "Test", "year": 2018, "score": 19},
+    {"externalId": 2, "movieTitle": "Test2", "year": 2019, "score": 85},
+    {"externalId": 3, "movieTitle": "Test3", "year": 2020, "score": 97},
+    {"externalId": 4, "movieTitle": "Test4", "year": 2021, "score": 5},
+    {"externalId": 5, "movieTitle": "Test5", "year": 2022, "score": 50},
+    {"externalId": 6, "movieTitle": "Test6", "year": 2023, "score": 90},
 ]
+
+
+@app.route("/")
+def home():
+    with open("index.html") as file:
+        return file.read()
+
+
+@app.route("/api/data", methods=["POST"])
+def get_data():
+    received_data = request.json
+    print(received_data)
+    processed_data = process_data(received_data)
+    return jsonify(processed_data)
+
+
+@app.route("/api/train", methods=["POST"])
+def train_model_endpoint():
+    received_data = request.json
+    print(received_data)
+    message = train_model(received_data)
+    return jsonify({"message": message})
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
+
+
 # So kommen die Daten am Endpunkt an
 #
 # Test_requerst = {
@@ -36,27 +67,3 @@ response_test = [
 #         ]
 #     }
 # }
-
-
-@app.route("/")
-def home():
-    with open("index.html") as file:
-        return file.read()
-
-
-@app.route("/api/data", methods=["POST"])
-def get_data():
-    recieved_data = request.json
-    print(recieved_data)
-    return jsonify(response_test)
-
-
-@app.route("/api/train", methods=["POST"])
-def train_model():
-    recieved_data = request.json
-    print(recieved_data)
-    return jsonify({"message": "Model trained successfully"})
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
