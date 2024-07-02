@@ -1,4 +1,7 @@
+import pickle
 from pprint import pprint
+
+import numpy as np
 
 
 def make_recommendations(user_ratings_input, cinema_movies_input):
@@ -34,8 +37,7 @@ def make_recommendations(user_ratings_input, cinema_movies_input):
     )
 
     sorted_scores = sorted(scores, key=lambda x: x["score"], reverse=True)
-    print("Sorted scores:")
-    print(sorted_scores)
+
     return sorted_scores
 
 
@@ -52,11 +54,6 @@ def _make_content_based_recommendations(user_ratings, cinema_movies):
     """
     return [
         {"externalId": "1", "score": 19, "title": "Test", "year": 2011, "movieId": 1},
-        {"externalId": "2", "score": 18, "title": "Test2", "year": 2012, "movieId": 2},
-        {"externalId": "3", "score": 17, "title": "Test3", "year": 2013, "movieId": 3},
-        {"externalId": "4", "score": 16, "title": "Test4", "year": 2014, "movieId": 4},
-        {"externalId": "5", "score": 15, "title": "Test5", "year": 2015, "movieId": 5},
-        {"externalId": "6", "score": 14, "title": "Test6", "year": 2016, "movieId": 6},
     ]
 
 
@@ -74,11 +71,6 @@ def _make_neighborhood_based_recommendations(user_ratings, cinema_movies, model)
     """
     return [
         {"externalId": "1", "score": 19, "title": "Test", "year": 2011, "movieId": 1},
-        {"externalId": "2", "score": 18, "title": "Test2", "year": 2012, "movieId": 2},
-        {"externalId": "3", "score": 17, "title": "Test3", "year": 2013, "movieId": 3},
-        {"externalId": "4", "score": 16, "title": "Test4", "year": 2014, "movieId": 4},
-        {"externalId": "5", "score": 15, "title": "Test5", "year": 2015, "movieId": 5},
-        {"externalId": "6", "score": 14, "title": "Test6", "year": 2016, "movieId": 6},
     ]
 
 
@@ -94,14 +86,63 @@ def _make_matrix_factorization_recommendations(user_ratings, cinema_movies, mode
     Returns:
     - scores: The scores for the cinema movies
     """
-    return [
-        {"externalId": "1", "score": 19, "title": "Test", "year": 2011, "movieId": 1},
-        {"externalId": "2", "score": 18, "title": "Test2", "year": 2012, "movieId": 2},
-        {"externalId": "3", "score": 17, "title": "Test3", "year": 2013, "movieId": 3},
-        {"externalId": "4", "score": 16, "title": "Test4", "year": 2014, "movieId": 4},
-        {"externalId": "5", "score": 15, "title": "Test5", "year": 2015, "movieId": 5},
-        {"externalId": "6", "score": 14, "title": "Test6", "year": 2016, "movieId": 6},
-    ]
+
+    def _find_similar_user(user_rated_movies, model, n_similar=1):
+        """
+        Find a similar user based on the given user's ratings using a pre-trained model.
+
+        Parameters:
+        user_rated_movies (list of dicts): List of ratings by the user in the form [{'movieId': int, 'rating': float}].
+        model (AlgoBase): The pre-trained Surprise model.
+        n_similar (int): The number of similar users to find. Default is 1.
+
+        Returns:
+        list: List of similar user IDs.
+        """
+        # Map movie IDs to the internal item IDs used by the model
+        trainset = model.trainset
+        temp_user_ratings = [
+            (trainset.to_inner_iid(movie["movieId"]), movie["rating"])
+            for movie in user_rated_movies
+            if movie["movieId"] in trainset._raw2inner_id_items
+        ]
+
+        # Get the latent factors for the items rated by the temporary user
+        q_i = np.array([model.qi[item_id] for item_id, _ in temp_user_ratings])
+        r_ui = np.array([rating for _, rating in temp_user_ratings])
+
+        # Calculate the implicit factors (biases can be included if the model uses them)
+        user_factors = np.linalg.lstsq(q_i, r_ui, rcond=None)[0]
+
+        # Calculate the similarity of the temporary user to all other users
+        similarities = []
+        for other_inner_user_id in trainset.all_users():
+            other_user_factors = model.pu[other_inner_user_id]
+            similarity = np.dot(user_factors, other_user_factors)
+            similarities.append((similarity, trainset.to_raw_uid(other_inner_user_id)))
+
+        # Sort the similarities in descending order and get the top n_similar users
+        similarities.sort(reverse=True, key=lambda x: x[0])
+        similar_users = [uid for _, uid in similarities[:n_similar]]
+
+        return similar_users[0]
+
+    similar_user = _find_similar_user(user_ratings, model, n_similar=1)
+    results = []
+
+    for movie in cinema_movies:
+        res = model.predict(similar_user, movie["movieId"])
+        results.append(
+            {
+                "movieId": movie["movieId"],
+                "score": round(res.est * 20),
+                "externalId": movie["externalId"],
+                "title": movie["title"],
+                "year": movie["year"],
+            }
+        )
+
+    return results
 
 
 def _combine_recommendations(
@@ -120,6 +161,12 @@ def _combine_recommendations(
     Returns:
     - scores: The combined scores
     """
+    print("MATRIX FACTORIZATION")
+    pprint(scores_matrix_factorization)
+    print("NEIGHBORHOOD BASED")
+    pprint(scores_neighborhood_based)
+    print("CONTENT BASED")
+    pprint(scores_content_based)
     scores = []
     for movie in scores_content_based:
         # Finden Sie das entsprechende movie in den anderen Listen
@@ -158,6 +205,9 @@ def _combine_recommendations(
                 "score": average_score,
             }
         )
+
+    print("AVERAGE SCORE")
+    pprint(scores)
     return scores
 
 
@@ -172,7 +222,10 @@ def _map_user_ratings(user_ratings_input):
     - user_ratings: The user ratings with the internal movie ids
     """
     # TODO: Implement logic to map movie id
-    return user_ratings_input
+    user_ratings = []
+    for rating in user_ratings_input:
+        user_ratings.append({**rating, "movieId": int(rating["externalId"])})
+    return user_ratings
 
 
 def _map_cinema_movies(cinema_movies_input):
@@ -186,7 +239,10 @@ def _map_cinema_movies(cinema_movies_input):
     - cinema_movies: The cinema movies with the internal movie ids
     """
     # TODO: Implement logic append movie id
-    return cinema_movies_input
+    cinema_movies = []
+    for movie in cinema_movies_input:
+        cinema_movies.append({**movie, "movieId": int(movie["externalId"])})
+    return cinema_movies
 
 
 def _get_trained_models():
@@ -197,5 +253,8 @@ def _get_trained_models():
     - neighborhood_model: The trained neighborhood model
     - matrix_factorization_model: The trained matrix factorization model
     """
-    # TODO: Implement logic to load trained models
-    return None, None
+    with open("./models/neighborhood_model.pkl", "rb") as f:
+        neighborhood_model = pickle.load(f)
+    with open("./models/matrix_factorization_model.pkl", "rb") as f:
+        matrix_factoization_model = pickle.load(f)
+    return neighborhood_model, matrix_factoization_model
