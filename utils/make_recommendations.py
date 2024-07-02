@@ -1,3 +1,6 @@
+from pprint import pprint
+
+
 def make_recommendations(user_ratings_input, cinema_movies_input):
     """
     This function makes movie recommendations for a user.

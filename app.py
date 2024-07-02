@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from utils.make_recommendations import make_recommendations
-from utils.train_models import train_model
+from utils.train_models import train_models
 from pprint import pprint
 
 
@@ -29,14 +29,13 @@ def get_data():
     cinema_movies = received_data["movies"]
     user_ratings = received_data["user_ratings"]
     processed_data = make_recommendations(user_ratings, cinema_movies)
-    return jsonify(processed_data)
+    return jsonify({"movies": processed_data})
 
 
 @app.route("/api/train", methods=["POST"])
 def train_model_endpoint():
-    received_data = request.json
-    print(received_data)
-    message = train_model(received_data)
+    message = train_models()
+    print(message)
     return jsonify({"message": message})
 
 
