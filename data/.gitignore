@@ -2,3 +2,5 @@
 *
 # Except this file
 !.gitignore
+!movies_with_genres.csv
+!movies_with_year.csv
