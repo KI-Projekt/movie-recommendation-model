@@ -24,5 +24,9 @@ Start the Server with the following command:
 export FLASK_APP=app
 flask run
 ```
+If this does not work try the following command:
+```bash
+python -m flask run
+```
 
 Open the website for the documentation of the enpoints.

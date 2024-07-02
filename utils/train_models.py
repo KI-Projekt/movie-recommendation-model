@@ -30,7 +30,7 @@ def _load_ratings():
     - test_set: The test set
     """
     DATA_FILE = "ml-latest-small"
-    DATA_URL = f"https://files.grouplens.org/datasets/movielens/${DATA_FILE}.zip"
+    DATA_URL = f"https://files.grouplens.org/datasets/movielens/{DATA_FILE}.zip"
     DATA_DIR = "./data"
 
     data_path = os.path.join(DATA_DIR, DATA_FILE, ".zip")
@@ -56,6 +56,8 @@ def _save_model(model, model_name):
     - model: The trained model to be saved
     - model_name: The name of the model
     """
+    if not os.path.exists("./models"):
+        os.makedirs("./models")
     model_path = f"./models/{model_name}.pkl"
     with open(model_path, "wb") as f:
         pickle.dump(model, f)
