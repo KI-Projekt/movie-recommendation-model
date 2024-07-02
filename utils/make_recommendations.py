@@ -2,6 +2,7 @@ import pickle
 from pprint import pprint
 
 import numpy as np
+import pandas as pd
 
 
 def make_recommendations(user_ratings_input, cinema_movies_input):
@@ -17,8 +18,9 @@ def make_recommendations(user_ratings_input, cinema_movies_input):
     """
     neighborhood_model, matrix_factorization_model = _get_trained_models()
 
-    user_ratings = _map_user_ratings(user_ratings_input)
-    cinema_movies = _map_cinema_movies(cinema_movies_input)
+    user_ratings, cinema_movies = _map_movie_ids(
+        user_ratings_input, cinema_movies_input
+    )
 
     scores_content_based = _make_content_based_recommendations(
         user_ratings, cinema_movies
@@ -211,40 +213,6 @@ def _combine_recommendations(
     return scores
 
 
-def _map_user_ratings(user_ratings_input):
-    """
-    This function maps the user ratings to the internal movie ids.
-
-    Args:
-    - user_ratings_input: The user ratings to be mapped
-
-    Returns:
-    - user_ratings: The user ratings with the internal movie ids
-    """
-    # TODO: Implement logic to map movie id
-    user_ratings = []
-    for rating in user_ratings_input:
-        user_ratings.append({**rating, "movieId": int(rating["externalId"])})
-    return user_ratings
-
-
-def _map_cinema_movies(cinema_movies_input):
-    """
-    This function maps the cinema movies to the internal movie ids.
-
-    Args:
-    - cinema_movies_input: The cinema movies to be mapped
-
-    Returns:
-    - cinema_movies: The cinema movies with the internal movie ids
-    """
-    # TODO: Implement logic append movie id
-    cinema_movies = []
-    for movie in cinema_movies_input:
-        cinema_movies.append({**movie, "movieId": int(movie["externalId"])})
-    return cinema_movies
-
-
 def _get_trained_models():
     """
     This function loads trained models from disk.
@@ -258,3 +226,91 @@ def _get_trained_models():
     with open("./models/matrix_factorization_model.pkl", "rb") as f:
         matrix_factoization_model = pickle.load(f)
     return neighborhood_model, matrix_factoization_model
+
+
+def _normalize_title(title):
+    """
+    This function normalizes the title of a movie.
+
+    Args:
+    - title: The title of the movie
+
+    Returns:
+    - normalized_title: The normalized title
+    """
+    articles = ["the", "a", "an"]
+    words = title.strip().split()
+    if words[-1].strip(",").lower() in articles:
+        return title.strip().lower()
+    if words[0].lower() in articles:
+        return ", ".join(words[1:]) + ", " + words[0].capitalize()
+    return title.lower()
+
+
+def _alternate_title_format(title):
+    """
+    This function returns an alternate title format for a movie.
+
+    Args:
+    - title: The title of the movie
+
+    Returns:
+    - alternate_title: The alternate title format
+    """
+    articles = ["the", "a", "an"]
+    words = title.strip().split()
+    if words[0].lower() in articles:
+        return ", ".join(words[1:]) + ", " + words[0].capitalize()
+    if words[-1].strip(",").lower() in articles:
+        return words[-1].capitalize() + " " + " ".join(words[:-1]).replace(",", "")
+    return title.lower()
+
+
+# Funktion zur Zuordnung der IDs
+def _map_movie_ids(user_ratings_input, cinema_movies_input):
+    """
+    This function maps the movie IDs to the user ratings and cinema movies.
+
+    Args:
+    - user_ratings_input: The user ratings
+    - cinema_movies_input: The cinema movies
+
+    Returns:
+    - mapped_user_ratings: The user ratings with movie IDs
+    - mapped_cinema_movies: The cinema movies with movie IDs
+    """
+    movies_df = pd.read_csv("./data/ml-latest-small/movies_processed.csv")
+    # Normalisieren der Titelspalte des DataFrames
+    movies_df["normalized_title"] = movies_df["title"].apply(_normalize_title)
+    movies_df["alternate_title"] = movies_df["title"].apply(_alternate_title_format)
+
+    def get_movie_id(title, year):
+        normalized_title = _normalize_title(title)
+        alternate_title = _alternate_title_format(title)
+
+        filtered_movies = movies_df[
+            (
+                (movies_df["normalized_title"] == normalized_title)
+                | (movies_df["alternate_title"] == alternate_title)
+            )
+            & (movies_df["year"] == year)
+        ]
+        if not filtered_movies.empty:
+            return filtered_movies.iloc[0]["movieId"]
+        else:
+            print(f"{title} ({year}) not found")
+            return None
+
+    # IDs zu den Filmen im user_ratings_input Array hinzufügen
+    mapped_user_ratings = []
+    for rating in user_ratings_input:
+        movie_id = get_movie_id(rating["title"], rating["year"])
+        mapped_user_ratings.append({**rating, "movieId": movie_id})
+
+    # IDs zu den Filmen im cinema_movies_input Array hinzufügen
+    mapped_cinema_movies = []
+    for movie in cinema_movies_input:
+        movie_id = get_movie_id(movie["title"], movie["year"])
+        mapped_cinema_movies.append({**movie, "movieId": movie_id})
+
+    return mapped_user_ratings, mapped_cinema_movies

@@ -26,6 +26,7 @@ flask run
 ```
 If this does not work try the following command:
 ```bash
+set FLASK_APP=app
 python -m flask run
 ```
 

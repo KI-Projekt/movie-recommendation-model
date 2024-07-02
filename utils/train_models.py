@@ -33,7 +33,7 @@ def _load_ratings():
     DATA_URL = f"https://files.grouplens.org/datasets/movielens/{DATA_FILE}.zip"
     DATA_DIR = "./data"
 
-    data_path = os.path.join(DATA_DIR, DATA_FILE, ".zip")
+    data_path = os.path.join(DATA_DIR, f"{DATA_FILE}.zip")
 
     if not os.path.exists(data_path):
         urllib.request.urlretrieve(DATA_URL, data_path)
@@ -122,4 +122,14 @@ def _prepare_content_based_data():
     """
     This function prepares the data for content-based filtering.
     """
-    pass
+    movies_df = pd.read_csv("./data/ml-latest-small/movies.csv")
+
+    movies_df["year"] = (
+        movies_df["title"].str.extract(r"(\d{4})", expand=False).astype(str)
+    )
+    movies_df["title"] = movies_df["title"].str.replace(
+        r"\s*\((\d{4})\)", "", regex=True
+    )
+
+    # Save the processed data
+    movies_df.to_csv("./data/ml-latest-small/movies_processed.csv", index=False)
