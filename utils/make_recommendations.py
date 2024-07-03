@@ -1,8 +1,11 @@
 import pickle
 from pprint import pprint
+from scipy.sparse import csr_matrix
+from sklearn.neighbors import NearestNeighbors
 
 import numpy as np
 import pandas as pd
+from surprise import Dataset, Reader
 
 
 def make_recommendations(user_ratings_input, cinema_movies_input):
@@ -71,9 +74,66 @@ def _make_neighborhood_based_recommendations(user_ratings, cinema_movies, model)
     Returns:
     - scores: The scores for the cinema movies
     """
-    return [
-        {"externalId": "1", "score": 19, "title": "Test", "year": 2011, "movieId": 1},
-    ]
+    def _find_nearest_neighbors(user_rated_movies, model, n_similar=1):
+        """
+        Find a similar user based on the given user's ratings using a pre-trained KNNBasic model.
+
+        Parameters:
+        user_rated_movies (list of dicts): List of ratings by the user in the form [{'movieId': int, 'rating': float}].
+        model (KNNBasic): The pre-trained Surprise KNNBasic model.
+        n_similar (int): The number of similar users to find. Default is 1.
+
+        Returns:
+        list: List of similar user IDs.
+        """
+        trainset = model.trainset
+        # Ensure the model is user-based and has been trained
+        if not model.sim_options['user_based']:
+            raise ValueError("The model must be user-based.")
+        if model.sim is None or not model.sim.size:
+            raise ValueError("The model has not been trained.")
+
+        # Convert user rated movies to inner ids
+        inner_ids = [
+            trainset.to_inner_iid(movie["movieId"])
+            for movie in user_rated_movies
+            if movie["movieId"] in trainset._raw2inner_id_items
+        ]
+
+        # Dummy user since KNNBasic does not directly support finding similar users based on their ratings
+        # We will use the average similarity of the rated items to all other users as a proxy
+        user_similarity = [0] * trainset.n_users
+        for movie_inner_id in inner_ids:
+            for other_user_id in range(trainset.n_users):
+                user_similarity[other_user_id] += model.sim[movie_inner_id][other_user_id]
+
+        # Average the similarity scores
+        user_similarity = [sim / len(inner_ids) for sim in user_similarity]
+
+        # Find the top n similar users
+        similar_users = sorted(range(len(user_similarity)), key=lambda i: user_similarity[i], reverse=True)[:n_similar]
+
+        # Convert inner user ids to raw user ids
+        similar_users_raw = [trainset.to_raw_uid(inner_id) for inner_id in similar_users]
+
+        return similar_users_raw[0]
+    
+    nearest_user_id = _find_nearest_neighbors(user_ratings, model, n_similar=1)
+    results = []
+
+    for movie in cinema_movies:
+        res = model.predict(nearest_user_id, movie["movieId"])
+        results.append(
+            {
+                "movieId": movie["movieId"],
+                "score": round(res.est * 20),
+                "externalId": movie["externalId"],
+                "title": movie["title"],
+                "year": movie["year"],
+            }
+        )
+
+    return results
 
 
 def _make_matrix_factorization_recommendations(user_ratings, cinema_movies, model):

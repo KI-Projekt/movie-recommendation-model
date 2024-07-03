@@ -73,7 +73,7 @@ def _train_neighborhood_model(ratings):
     Returns:
     - neighborhood_model: The trained neighborhood model
     """
-    neighborhood_model = KNNBasic(sim_options={"name": "cosine", "user_based": False})
+    neighborhood_model = KNNBasic(sim_options={"name": "cosine", "user_based": True})
     neighborhood_model.fit(ratings)
     return neighborhood_model
 
