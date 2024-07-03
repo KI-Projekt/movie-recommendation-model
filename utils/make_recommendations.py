@@ -25,13 +25,13 @@ def make_recommendations(user_ratings_input, cinema_movies_input):
         user_ratings_input, cinema_movies_input
     )
 
-    scores_content_based = _make_content_based_recommendations(
+    scores_content_based = make_content_based_recommendations(
         user_ratings, cinema_movies
     )
-    scores_neighborhood_based = _make_neighborhood_based_recommendations(
+    scores_neighborhood_based = make_neighborhood_based_recommendations(
         user_ratings, cinema_movies, neighborhood_model
     )
-    scores_matrix_factorization = _make_matrix_factorization_recommendations(
+    scores_matrix_factorization = make_matrix_factorization_recommendations(
         user_ratings, cinema_movies, matrix_factorization_model
     )
 
@@ -46,7 +46,7 @@ def make_recommendations(user_ratings_input, cinema_movies_input):
     return sorted_scores
 
 
-def _make_content_based_recommendations(user_ratings, cinema_movies):
+def make_content_based_recommendations(user_ratings, cinema_movies):
     """
     This function makes recommendations using content-based filtering.
 
@@ -62,7 +62,7 @@ def _make_content_based_recommendations(user_ratings, cinema_movies):
     ]
 
 
-def _make_neighborhood_based_recommendations(user_ratings, cinema_movies, model):
+def make_neighborhood_based_recommendations(user_ratings, cinema_movies, model):
     """
     This function makes recommendations using neighborhood-based collaborative filtering.
 
@@ -74,6 +74,7 @@ def _make_neighborhood_based_recommendations(user_ratings, cinema_movies, model)
     Returns:
     - scores: The scores for the cinema movies
     """
+
     def _find_nearest_neighbors(user_rated_movies, model, n_similar=1):
         """
         Find a similar user based on the given user's ratings using a pre-trained KNNBasic model.
@@ -88,7 +89,7 @@ def _make_neighborhood_based_recommendations(user_ratings, cinema_movies, model)
         """
         trainset = model.trainset
         # Ensure the model is user-based and has been trained
-        if not model.sim_options['user_based']:
+        if not model.sim_options["user_based"]:
             raise ValueError("The model must be user-based.")
         if model.sim is None or not model.sim.size:
             raise ValueError("The model has not been trained.")
@@ -105,19 +106,25 @@ def _make_neighborhood_based_recommendations(user_ratings, cinema_movies, model)
         user_similarity = [0] * trainset.n_users
         for movie_inner_id in inner_ids:
             for other_user_id in range(trainset.n_users):
-                user_similarity[other_user_id] += model.sim[movie_inner_id][other_user_id]
+                user_similarity[other_user_id] += model.sim[movie_inner_id][
+                    other_user_id
+                ]
 
         # Average the similarity scores
         user_similarity = [sim / len(inner_ids) for sim in user_similarity]
 
         # Find the top n similar users
-        similar_users = sorted(range(len(user_similarity)), key=lambda i: user_similarity[i], reverse=True)[:n_similar]
+        similar_users = sorted(
+            range(len(user_similarity)), key=lambda i: user_similarity[i], reverse=True
+        )[:n_similar]
 
         # Convert inner user ids to raw user ids
-        similar_users_raw = [trainset.to_raw_uid(inner_id) for inner_id in similar_users]
+        similar_users_raw = [
+            trainset.to_raw_uid(inner_id) for inner_id in similar_users
+        ]
 
         return similar_users_raw[0]
-    
+
     nearest_user_id = _find_nearest_neighbors(user_ratings, model, n_similar=1)
     results = []
 
@@ -136,7 +143,7 @@ def _make_neighborhood_based_recommendations(user_ratings, cinema_movies, model)
     return results
 
 
-def _make_matrix_factorization_recommendations(user_ratings, cinema_movies, model):
+def make_matrix_factorization_recommendations(user_ratings, cinema_movies, model):
     """
     This function makes recommendations using matrix factorization.
 
