@@ -48,7 +48,7 @@ def make_recommendations(user_ratings_input, cinema_movies_input, is_evaluation)
     return sorted_scores
 
 
-def make_content_based_recommendations(user_ratings, cinema_movies):
+def make_content_based_recommendations(user_ratings_input, cinema_movies_input):
     """
     This function makes recommendations using content-based filtering.
 
@@ -59,9 +59,149 @@ def make_content_based_recommendations(user_ratings, cinema_movies):
     Returns:
     - scores: The scores for the cinema movies
     """
-    return [
-        {"externalId": "1", "score": 19, "title": "Test", "year": 2011, "movieId": 1},
-    ]
+
+    def _load_data():
+        movies = pd.read_csv("./data/ml-latest-small/movies.csv")
+        movies_with_genres = pd.read_csv("./data/movies_with_genres.csv")
+        movies_with_year = pd.read_csv("./data/movies_with_year.csv", sep=";")
+
+        # Extrahiere das Erscheinungsjahr aus dem Titel und füge es als neue Spalte hinzu
+        movies["year"] = movies["title"].str.extract(r"\((\d{4})\)")
+
+        # Entferne das Erscheinungsjahr aus dem Titel
+        movies["title"] = movies["title"].str.replace(r"\s*\(\d{4}\)", "", regex=True)
+        return movies, movies_with_genres, movies_with_year
+
+    def _handle_missing_years(movies, movies_with_year):
+        # Füge die fehlenden Jahre aus der neuen CSV-Datei ein, basierend auf den Titeln
+        movies["year"] = movies.apply(
+            lambda row: (
+                movies_with_year[movies_with_year["title"] == row["title"]][
+                    "year"
+                ].values[0]
+                if pd.isnull(row["year"])
+                and row["title"] in movies_with_year["title"].values
+                else row["year"]
+            ),
+            axis=1,
+        )
+
+        # Entferne Filme ohne Erscheinungsjahr
+        movies = movies.dropna(subset=["year"])
+        movies.isnull().sum()
+        return movies
+
+    def _prepare_genres(movies, movies_with_genres):
+        # Zusammenführen der DataFrames basierend auf den Titeln und Jahren
+        movies_updated = pd.merge(
+            movies,
+            movies_with_genres[["title", "year", "genres"]],
+            on=["title", "year"],
+            how="left",
+            suffixes=("", "_new"),
+        )
+
+        # Aktualisieren der Genres im movies DataFrame nur für die übereinstimmenden Einträge
+        movies_updated["genres"] = movies_updated["genres_new"].combine_first(
+            movies_updated["genres"]
+        )
+
+        # Entferne die temporäre Spalte
+        movies_updated = movies_updated.drop(columns=["genres_new"])
+        movies = movies_updated
+
+        # Entferne "(no genres listed)" aus der Genre-Liste
+        movies["genres"] = movies["genres"].replace("(no genres listed)", "")
+
+        # Trenne die Genres in separate Listen
+        genre_list = movies["genres"].str.split("|")
+
+        # Finde alle einzigartigen Genres
+        all_genres = set(genre for sublist in genre_list for genre in sublist if genre)
+
+        # Erstelle für jedes Genre eine Spalte und fülle sie mit binären Werten
+        for genre in all_genres:
+            movies[genre] = movies["genres"].apply(lambda x: int(genre in x.split("|")))
+
+        # Entferne die ursprüngliche 'genres' Spalte
+        movies = movies.drop(columns=["genres"])
+        return movies
+
+    def _get_movie_features(movies, movie_id):
+        filtered_movie = movies[movies["movieId"] == movie_id]
+        if not filtered_movie.empty:
+            # Wähle nur die numerischen Spalten aus, die für die Berechnung der Ähnlichkeiten verwendet werden sollen, außer 'movieId'
+            numeric_features = filtered_movie.drop(columns=["movieId"]).select_dtypes(
+                include=[np.number]
+            )
+            return numeric_features.iloc[0]
+        else:
+            print(f"Movie with ID {movie_id} not found")
+            return None
+
+    movies, movies_with_genres, movies_with_year = _load_data()
+    movies = _handle_missing_years(movies, movies_with_year)
+    movies = _prepare_genres(movies, movies_with_genres)
+
+    # Schritt 1: Extrahieren der Merkmale der vom Nutzer bewerteten Filme
+    user_movie_features = []
+    has_positive_ratings = any(
+        "rating" in movie and movie["rating"] >= 2.5 for movie in user_ratings_input
+    )
+
+    for movie in user_ratings_input:
+        if has_positive_ratings and movie.get("rating", 0) >= 2.5:
+            features = _get_movie_features(movies, movie["movieId"])
+            if features is not None:
+                user_movie_features.append(features.values)
+        elif not has_positive_ratings and movie.get("rating", 0) < 2.5:
+            features = _get_movie_features(movies, movie["movieId"])
+            if features is not None:
+                user_movie_features.append(features.values)
+
+    # Schritt 2: Feature-Vektorisierung
+    if not user_movie_features:
+        raise ValueError("Keine positiv bewerteten Filme vorhanden.")
+
+    user_profile = np.mean(user_movie_features, axis=0)
+
+    # Schritt 3: Ähnlichkeitsberechnung
+    kino_movie_features = []
+    for kino_movie in cinema_movies_input:
+        features = _get_movie_features(movies, kino_movie["movieId"])
+        if features is not None:
+            kino_movie_features.append(features.values)
+
+    if not kino_movie_features:
+        raise ValueError("Keine Kino-Filme mit passenden Features gefunden.")
+
+    similarities = cosine_similarity([user_profile], kino_movie_features)[0]
+    similarities = similarities * 100
+
+    # Schritt 4: Sortierung und Ausgabe
+    # Falls der Nutzer positive Bewertungen abgegeben hat, sortiere nach absteigender Ähnlichkeit
+    # Andernfalls sortiere nach aufsteigender Ähnlichkeit
+    cinema_movies_with_similarity = []
+    for i, kino_movie in enumerate(cinema_movies_input):
+        kino_movie_with_similarity = {
+            "externalId": kino_movie["externalId"],
+            "title": kino_movie["title"],
+            "year": kino_movie["year"],
+            "score": similarities[i],
+            "movieId": kino_movie["movieId"],
+        }
+        cinema_movies_with_similarity.append(kino_movie_with_similarity)
+
+    if has_positive_ratings:
+        sorted_cinema_movies = sorted(
+            cinema_movies_with_similarity, key=lambda x: x["score"], reverse=True
+        )
+    else:
+        sorted_cinema_movies = sorted(
+            cinema_movies_with_similarity, key=lambda x: x["score"]
+        )
+
+    return sorted_cinema_movies
 
 
 def make_neighborhood_based_recommendations(user_ratings, cinema_movies, model):

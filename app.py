@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from utils.make_recommendations import make_recommendations
 from utils.train_models import train_models
 from pprint import pprint
+import numpy as np
 
 
 app = Flask(__name__)
@@ -28,7 +29,13 @@ def get_data():
     received_data = request.json
     cinema_movies = received_data["movies"]
     user_ratings = received_data["user_ratings"]
-    processed_data = make_recommendations(user_ratings, cinema_movies)
+    processed_data = make_recommendations(user_ratings, cinema_movies, False)
+    # Umwandlung von int64 in int
+    for item in processed_data:
+        for key, value in item.items():
+            if isinstance(value, np.int64):
+                item[key] = int(value)
+
     return jsonify({"movies": processed_data})
 
 
@@ -37,6 +44,17 @@ def train_model_endpoint():
     message = train_models()
     print(message)
     return jsonify({"message": message})
+
+
+# @app.route("/api/train", methods=["GET"])
+# def get_train_model_endpoint():
+#     message = "Train model"
+#     print(message)
+#     return jsonify({"message": message})
+
+# @app.route("/api/evaluate", methods=["GET"])
+
+# @app.route("/api/evaluate", methods=["POST"])
 
 
 if __name__ == "__main__":

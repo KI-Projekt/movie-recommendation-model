@@ -23,7 +23,9 @@ def train_models():
     matrix_factorization_model = _train_matrix_factorization_model(train_ratings)
     _evaluate_model_predictions("matrix_factorization")
     # _evaluate_model_predictions("neighborhood")
-    # _evaluate_model_predictions("content_based") #TODO: Test if it works (needs time) -> implement recommendation function
+    _evaluate_model_predictions(
+        "content_based"
+    )  # TODO: Test if it works (needs time) -> implement recommendation function
 
     _evaluate_models(neighborhood_model, matrix_factorization_model, test_ratings)
 
@@ -168,6 +170,12 @@ def _evaluate_model_predictions(model_type):
     """
 
     def _get_user_ratings_per_user(ratings_df):
+        """
+        This function groups the ratings by user.
+
+        Args:
+        - ratings_df: The ratings data
+        """
         user_ratings = {}
         for _, row in ratings_df.iterrows():
             user_id = row["userId"]
@@ -209,6 +217,7 @@ def _evaluate_model_predictions(model_type):
             continue
 
         movies_to_test = user_ratings_test[user_id]
+        print(f"Making recommendations for user {user_id}")
 
         if model_type == "neighborhood":
             score = make_neighborhood_based_recommendations(
@@ -312,7 +321,7 @@ def _evaluate_all():
 
         movies_to_test = user_ratings_test[user_id]
 
-        score = make_recommendations(user_ratings_input, movies_to_test)
+        score = make_recommendations(user_ratings_input, movies_to_test, True)
 
         user_results = []
         for movie in score:
