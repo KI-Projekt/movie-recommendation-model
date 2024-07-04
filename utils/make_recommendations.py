@@ -1,8 +1,14 @@
 import pickle
 from pprint import pprint
 
+from sklearn.metrics.pairwise import cosine_similarity
+
+""" from scipy.sparse import csr_matrix
+from sklearn.neighbors import NearestNeighbors """
+
 import numpy as np
 import pandas as pd
+""" from surprise import Dataset, Reader """
 
 
 def make_recommendations(user_ratings_input, cinema_movies_input):
@@ -22,13 +28,13 @@ def make_recommendations(user_ratings_input, cinema_movies_input):
         user_ratings_input, cinema_movies_input
     )
 
-    scores_content_based = _make_content_based_recommendations(
+    scores_content_based = make_content_based_recommendations(
         user_ratings, cinema_movies
     )
-    scores_neighborhood_based = _make_neighborhood_based_recommendations(
+    scores_neighborhood_based = make_neighborhood_based_recommendations(
         user_ratings, cinema_movies, neighborhood_model
     )
-    scores_matrix_factorization = _make_matrix_factorization_recommendations(
+    scores_matrix_factorization = make_matrix_factorization_recommendations(
         user_ratings, cinema_movies, matrix_factorization_model
     )
 
@@ -43,7 +49,7 @@ def make_recommendations(user_ratings_input, cinema_movies_input):
     return sorted_scores
 
 
-def _make_content_based_recommendations(user_ratings, cinema_movies):
+def make_content_based_recommendations(user_ratings, cinema_movies):
     """
     This function makes recommendations using content-based filtering.
 
@@ -59,7 +65,7 @@ def _make_content_based_recommendations(user_ratings, cinema_movies):
     ]
 
 
-def _make_neighborhood_based_recommendations(user_ratings, cinema_movies, model):
+def make_neighborhood_based_recommendations(user_ratings, cinema_movies, model):
     """
     This function makes recommendations using neighborhood-based collaborative filtering.
 
@@ -71,12 +77,75 @@ def _make_neighborhood_based_recommendations(user_ratings, cinema_movies, model)
     Returns:
     - scores: The scores for the cinema movies
     """
-    return [
-        {"externalId": "1", "score": 19, "title": "Test", "year": 2011, "movieId": 1},
-    ]
+
+    def _find_nearest_neighbors(user_rated_movies, n_similar=1):
+        """
+        Find a similar user based on the given user's ratings using a pre-trained KNNBasic model.
+
+        Parameters:
+        user_rated_movies (list of dicts): List of ratings by the user in the form [{'movieId': int, 'rating': float}].
+        model (KNNBasic): The pre-trained Surprise KNNBasic model.
+        n_similar (int): The number of similar users to find. Default is 1.
+
+        Returns:
+        list: List of similar user IDs.
+        """
+        # Step 1: Load the Data
+        data = pd.read_csv('./data/ml-latest-small/ratings.csv')
+
+        # Step 2: Create a User-Item Matrix
+        ratings_matrix = data.pivot_table(index='userId', columns='movieId', values='rating', fill_value=0)
+
+        # Prepare the new user's ratings
+        new_user_ratings = pd.Series(index=ratings_matrix.columns)
+
+        for movie in user_rated_movies:
+            movie_id = movie['movieId']  # Use movieId to match the column
+            new_user_ratings[movie_id] = movie['rating']
+
+        # Convert the Series to a DataFrame to append it
+        new_user_df = pd.DataFrame([new_user_ratings.fillna(0)])
+
+        # Append the new user's ratings to the ratings_matrix using pd.concat
+        ratings_matrix = pd.concat([ratings_matrix, new_user_df], ignore_index=True)
+
+        # Convert the updated DataFrame to a numpy array for similarity computation
+        ratings_matrix_np = ratings_matrix.to_numpy()
+
+        # Compute cosine similarities with the updated matrix
+        user_similarities = cosine_similarity(ratings_matrix_np)
+
+        # The new user is the last row in the matrix
+        input_user_index = len(ratings_matrix_np) - 1
+        input_user_similarity = user_similarities[input_user_index]
+
+        # Ignore the similarity of the user to themselves by setting it to -1
+        input_user_similarity[input_user_index] = -1
+
+        # Find the nearest user
+        nearest_user_index = np.argmax(input_user_similarity)
+        print(nearest_user_index + 1)
+        return nearest_user_index + 1
+
+    nearest_user_id = _find_nearest_neighbors(user_ratings, n_similar=1)
+    results = []
+
+    for movie in cinema_movies:
+        res = model.predict(nearest_user_id, movie["movieId"])
+        results.append(
+            {
+                "movieId": movie["movieId"],
+                "score": round(res.est * 20),
+                "externalId": movie["externalId"],
+                "title": movie["title"],
+                "year": movie["year"],
+            }
+        )
+
+    return results
 
 
-def _make_matrix_factorization_recommendations(user_ratings, cinema_movies, model):
+def make_matrix_factorization_recommendations(user_ratings, cinema_movies, model):
     """
     This function makes recommendations using matrix factorization.
 
