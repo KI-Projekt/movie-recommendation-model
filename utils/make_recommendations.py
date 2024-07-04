@@ -1,32 +1,31 @@
 import pickle
 from pprint import pprint
-
 from sklearn.metrics.pairwise import cosine_similarity
-
-""" from scipy.sparse import csr_matrix
-from sklearn.neighbors import NearestNeighbors """
-
 import numpy as np
 import pandas as pd
-""" from surprise import Dataset, Reader """
 
 
-def make_recommendations(user_ratings_input, cinema_movies_input):
+def make_recommendations(user_ratings_input, cinema_movies_input, is_evaluation):
     """
     This function makes movie recommendations for a user.
 
     Args:
     - user_ratings_input: The user ratings
     - cinema_movies_input: The cinema movies
+    - is_evaluation: A flag indicating whether the function is being called for evaluation
 
     Returns:
     - sorted_scores: The sorted scores for the cinema movies
     """
     neighborhood_model, matrix_factorization_model = _get_trained_models()
 
-    user_ratings, cinema_movies = _map_movie_ids(
-        user_ratings_input, cinema_movies_input
-    )
+    if is_evaluation:
+        user_ratings = user_ratings_input
+        cinema_movies = cinema_movies_input
+    else:
+        user_ratings, cinema_movies = _map_movie_ids(
+            user_ratings_input, cinema_movies_input
+        )
 
     scores_content_based = make_content_based_recommendations(
         user_ratings, cinema_movies
@@ -91,17 +90,19 @@ def make_neighborhood_based_recommendations(user_ratings, cinema_movies, model):
         list: List of similar user IDs.
         """
         # Step 1: Load the Data
-        data = pd.read_csv('./data/ml-latest-small/ratings.csv')
+        data = pd.read_csv("./data/ml-latest-small/ratings.csv")
 
         # Step 2: Create a User-Item Matrix
-        ratings_matrix = data.pivot_table(index='userId', columns='movieId', values='rating', fill_value=0)
+        ratings_matrix = data.pivot_table(
+            index="userId", columns="movieId", values="rating", fill_value=0
+        )
 
         # Prepare the new user's ratings
         new_user_ratings = pd.Series(index=ratings_matrix.columns)
 
         for movie in user_rated_movies:
-            movie_id = movie['movieId']  # Use movieId to match the column
-            new_user_ratings[movie_id] = movie['rating']
+            movie_id = movie["movieId"]  # Use movieId to match the column
+            new_user_ratings[movie_id] = movie["rating"]
 
         # Convert the Series to a DataFrame to append it
         new_user_df = pd.DataFrame([new_user_ratings.fillna(0)])
@@ -124,8 +125,8 @@ def make_neighborhood_based_recommendations(user_ratings, cinema_movies, model):
 
         # Find the nearest user
         nearest_user_index = np.argmax(input_user_similarity)
-        print(nearest_user_index + 1)
-        return nearest_user_index + 1
+        print(nearest_user_index)
+        return nearest_user_index
 
     nearest_user_id = _find_nearest_neighbors(user_ratings, n_similar=1)
     results = []
