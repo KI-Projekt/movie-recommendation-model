@@ -20,7 +20,7 @@ def train_models():
     neighborhood_model = _train_neighborhood_model(train_ratings)
     matrix_factorization_model = _train_matrix_factorization_model(train_ratings)
     _evaluate_model_predictions("matrix_factorization")
-    # _evaluate_model_predictions("neighborhood")
+    _evaluate_model_predictions("neighborhood")
 
     _evaluate_models(neighborhood_model, matrix_factorization_model, test_ratings)
 
@@ -202,6 +202,7 @@ def _evaluate_model_predictions(model_type):
 
     for user_id, user_ratings_input in user_ratings_input.items():
         if user_id not in user_ratings_test:
+            # TODO: Remove from array, that score is calulated correctly
             continue
 
         movies_to_test = user_ratings_test[user_id]
@@ -246,14 +247,14 @@ def _evaluate_model_predictions(model_type):
         for user_result in results:
             for movie in user_result["results"]:
                 if "rating" in movie:
-                    rmse_score += (movie["rating"] - movie["score"]) ** 2
-                    mae_score += abs(movie["rating"] - movie["score"])
+                    rmse_score += ((movie["rating"] - movie["score"])/20) ** 2
+                    mae_score += abs(movie["rating"] - movie["score"])/20
                     ctr += 1
         rmse_score = (rmse_score / ctr) ** 0.5
         mae_score = mae_score / ctr
         print(f"Evaluation results for model {model_type}:")
-        print(f"RMSE: {rmse_score/20}")
-        print(f"MAE: {mae_score/20}")
+        print(f"RMSE: {rmse_score}")
+        print(f"MAE: {mae_score}")
         print("\n")
         return rmse_score, mae_score
 

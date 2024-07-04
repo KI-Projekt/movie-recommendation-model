@@ -1,11 +1,14 @@
 import pickle
 from pprint import pprint
-from scipy.sparse import csr_matrix
-from sklearn.neighbors import NearestNeighbors
+
+from sklearn.metrics.pairwise import cosine_similarity
+
+""" from scipy.sparse import csr_matrix
+from sklearn.neighbors import NearestNeighbors """
 
 import numpy as np
 import pandas as pd
-from surprise import Dataset, Reader
+""" from surprise import Dataset, Reader """
 
 
 def make_recommendations(user_ratings_input, cinema_movies_input):
@@ -75,7 +78,7 @@ def make_neighborhood_based_recommendations(user_ratings, cinema_movies, model):
     - scores: The scores for the cinema movies
     """
 
-    def _find_nearest_neighbors(user_rated_movies, model, n_similar=1):
+    def _find_nearest_neighbors(user_rated_movies, n_similar=1):
         """
         Find a similar user based on the given user's ratings using a pre-trained KNNBasic model.
 
@@ -87,45 +90,44 @@ def make_neighborhood_based_recommendations(user_ratings, cinema_movies, model):
         Returns:
         list: List of similar user IDs.
         """
-        trainset = model.trainset
-        # Ensure the model is user-based and has been trained
-        if not model.sim_options["user_based"]:
-            raise ValueError("The model must be user-based.")
-        if model.sim is None or not model.sim.size:
-            raise ValueError("The model has not been trained.")
+        # Step 1: Load the Data
+        data = pd.read_csv('./data/ml-latest-small/ratings.csv')
 
-        # Convert user rated movies to inner ids
-        inner_ids = [
-            trainset.to_inner_iid(movie["movieId"])
-            for movie in user_rated_movies
-            if movie["movieId"] in trainset._raw2inner_id_items
-        ]
+        # Step 2: Create a User-Item Matrix
+        ratings_matrix = data.pivot_table(index='userId', columns='movieId', values='rating', fill_value=0)
 
-        # Dummy user since KNNBasic does not directly support finding similar users based on their ratings
-        # We will use the average similarity of the rated items to all other users as a proxy
-        user_similarity = [0] * trainset.n_users
-        for movie_inner_id in inner_ids:
-            for other_user_id in range(trainset.n_users):
-                user_similarity[other_user_id] += model.sim[movie_inner_id][
-                    other_user_id
-                ]
+        # Prepare the new user's ratings
+        new_user_ratings = pd.Series(index=ratings_matrix.columns)
 
-        # Average the similarity scores
-        user_similarity = [sim / len(inner_ids) for sim in user_similarity]
+        for movie in user_rated_movies:
+            movie_id = movie['movieId']  # Use movieId to match the column
+            new_user_ratings[movie_id] = movie['rating']
 
-        # Find the top n similar users
-        similar_users = sorted(
-            range(len(user_similarity)), key=lambda i: user_similarity[i], reverse=True
-        )[:n_similar]
+        # Convert the Series to a DataFrame to append it
+        new_user_df = pd.DataFrame([new_user_ratings.fillna(0)])
 
-        # Convert inner user ids to raw user ids
-        similar_users_raw = [
-            trainset.to_raw_uid(inner_id) for inner_id in similar_users
-        ]
+        # Append the new user's ratings to the ratings_matrix using pd.concat
+        ratings_matrix = pd.concat([ratings_matrix, new_user_df], ignore_index=True)
 
-        return similar_users_raw[0]
+        # Convert the updated DataFrame to a numpy array for similarity computation
+        ratings_matrix_np = ratings_matrix.to_numpy()
 
-    nearest_user_id = _find_nearest_neighbors(user_ratings, model, n_similar=1)
+        # Compute cosine similarities with the updated matrix
+        user_similarities = cosine_similarity(ratings_matrix_np)
+
+        # The new user is the last row in the matrix
+        input_user_index = len(ratings_matrix_np) - 1
+        input_user_similarity = user_similarities[input_user_index]
+
+        # Ignore the similarity of the user to themselves by setting it to -1
+        input_user_similarity[input_user_index] = -1
+
+        # Find the nearest user
+        nearest_user_index = np.argmax(input_user_similarity)
+        print(nearest_user_index + 1)
+        return nearest_user_index + 1
+
+    nearest_user_id = _find_nearest_neighbors(user_ratings, n_similar=1)
     results = []
 
     for movie in cinema_movies:
