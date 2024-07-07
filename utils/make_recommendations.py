@@ -265,7 +265,6 @@ def make_neighborhood_based_recommendations(user_ratings, cinema_movies, model):
 
         # Find the nearest user
         nearest_user_index = np.argmax(input_user_similarity)
-        print(nearest_user_index)
         return nearest_user_index
 
     nearest_user_id = _find_nearest_neighbors(user_ratings, n_similar=1)

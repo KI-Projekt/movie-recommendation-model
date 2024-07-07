@@ -69,7 +69,7 @@
   anpassung an eigenen use-case. bewerten der einzelnden modelle
 
 5. **Evaluation**:
-   - Auswertung: Überprüfung der Modellleistung anhand von Metriken wie RMSE und MAE. einzeln und gesamt
+   - Auswertung: Überprüfung der Modellleistung anhand von Metriken wie RMSE und MAE gesamt
    - Geschäftsziele: 
 
 6. **Deployment**:
