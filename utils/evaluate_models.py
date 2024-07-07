@@ -3,7 +3,7 @@ import threading
 import traceback
 import pandas as pd
 import utils.status as status
-from surprise import accuracy
+from surprise import Dataset, Reader, accuracy
 from surprise.accuracy import rmse
 from sklearn.model_selection import train_test_split as sk_train_test_split
 from utils.make_recommendations import (
@@ -77,9 +77,13 @@ def _evaluate_models():
         open("./models/matrix_factorization_model.pkl", "rb")
     )
     test_ratings = pd.read_csv("./data/ml-latest-small/test_set_ratings.csv")
+    reader = Reader(line_format="user item rating timestamp", sep=",")
+    data = Dataset.load_from_df(test_ratings[["userId", "movieId", "rating"]], reader)
+    trainset = data.build_full_trainset()
+    testset = trainset.build_testset()
 
-    neighborhood_predictions = neighborhood_model.test(test_ratings)
-    matrix_factorization_predictions = matrix_factorization_model.test(test_ratings)
+    neighborhood_predictions = neighborhood_model.test(testset)
+    matrix_factorization_predictions = matrix_factorization_model.test(testset)
 
     neighborhood_rmse = rmse(neighborhood_predictions)
     matrix_factorization_rmse = rmse(matrix_factorization_predictions)
@@ -92,6 +96,7 @@ def _evaluate_models():
     print(f"Matrix Factorization Model RMSE: {matrix_factorization_rmse}")
     print(f"Neighborhood Model MAE: {neighborhood_mae}")
     print(f"Matrix Factorization Model MAE: {matrix_factorization_mae}")
+    print("\n")
     return neighborhood_rmse, matrix_factorization_rmse
 
 
