@@ -402,9 +402,16 @@ def _combine_recommendations(
         if neighborhood_movie is None or matrix_movie is None:
             continue
 
+        weight_content_based = 0.11270225
+        weight_neighborhood_based = 0.37353889
+        weight_matrix_factorization = 0.51375886
         # Berechnen Sie den Durchschnittsscore
         average_score = round(
-            (movie["score"] + neighborhood_movie["score"] + matrix_movie["score"]) / 3
+            (
+                movie["score"] * weight_content_based
+                + neighborhood_movie["score"] * weight_neighborhood_based
+                + matrix_movie["score"] * weight_matrix_factorization
+            )
         )
 
         scores.append(
