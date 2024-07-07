@@ -16,7 +16,9 @@ def get_evaluation_results():
     """
     This function returns the evaluation results.
     """
-    print(f"RMSE All: {rmse_all}, RMSE Neighborhood: {rmse_neighborhood}, RMSE Matrix Factorization: {rmse_matrix_factorization}, RMSE Content Based: {rmse_content_based}  ")
+    print(
+        f"\nGET EVALUATION:\nRMSE All: {rmse_all}, RMSE Neighborhood: {rmse_neighborhood}, RMSE Matrix Factorization: {rmse_matrix_factorization}, RMSE Content Based: {rmse_content_based}  "
+    )
     return (
         round(rmse_all, 2),
         round(rmse_neighborhood, 2),

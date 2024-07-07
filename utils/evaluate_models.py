@@ -1,5 +1,6 @@
 import pickle
 import threading
+import traceback
 import pandas as pd
 import utils.status as status
 from surprise import accuracy
@@ -31,29 +32,32 @@ def _evaluate():
     """
     try:
         status.is_evaluating = True
-        # _evaluate_models()
+        _evaluate_models()
         rmse_matrix_factorization, mae_matrix_factorization = (
             _evaluate_model_predictions("matrix_factorization")
         )
+        status.rmse_matrix_factorization = rmse_matrix_factorization
+        status.mae_matrix_factorization = mae_matrix_factorization
+
         rmse_neighborhood, mae_neighborhood = _evaluate_model_predictions(
             "neighborhood"
         )
+        status.rmse_neighborhood = rmse_neighborhood
+        status.mae_neighborhood = mae_neighborhood
+
         rmse_content_based, mae_content_based = _evaluate_model_predictions(
             "content_based"
         )
-        rmse_all, mae_all = _evaluate_all()
-        status.rmse_all = rmse_all
-        status.rmse_neighborhood = rmse_neighborhood
-        status.rmse_matrix_factorization = rmse_matrix_factorization
         status.rmse_content_based = rmse_content_based
-        status.mae_all = mae_all
-        status.mae_neighborhood = mae_neighborhood
-        status.mae_matrix_factorization = mae_matrix_factorization
         status.mae_content_based = mae_content_based
 
-        return "Model evaluation finished"
+        rmse_all, mae_all = _evaluate_all()
+        status.rmse_all = rmse_all
+        status.mae_all = mae_all
+
     except Exception as e:
-        return f"Model evaluation failed: {str(e)}"
+        print(f"Model evaluation failed: {str(e)}")
+        print(traceback.format_exc())
     finally:
         status.is_evaluating = False
         print("Model evaluation finished")
@@ -228,7 +232,7 @@ def _evaluate_all():
                     "rating": rating,
                     "title": "",
                     "year": 1000,
-                    "externalId": "",
+                    "externalId": str(movie_id),
                 }
             )
 
@@ -259,14 +263,13 @@ def _evaluate_all():
                 (
                     test_movie
                     for test_movie in movies_to_test
-                    if test_movie["movieId"] == movie["movieId"]
+                    if test_movie["externalId"] == movie["externalId"]
                     and "rating" in test_movie
                 ),
                 None,
             )
             user_results.append(
                 {
-                    "movieId": movie["movieId"],
                     "score": movie["score"],
                     "title": movie["title"],
                     "year": movie["year"],
@@ -294,4 +297,10 @@ def _evaluate_all():
         print("\n")
         return rmse_score, mae_score
 
-    return _calculate_rmse(results)
+    rmse, mae = _calculate_rmse(results)
+    print("\nEvaluation results for all models:")
+    print(f"RMSE: {rmse}")
+    print(f"MAE: {mae}")
+    print("\n")
+
+    return rmse, mae
