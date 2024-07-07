@@ -412,7 +412,6 @@ def _combine_recommendations(
                 "externalId": movie["externalId"],
                 "title": movie["title"],
                 "year": movie["year"],
-                "movieId": movie["movieId"],
                 "score": average_score,
             }
         )

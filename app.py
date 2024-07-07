@@ -76,6 +76,9 @@ def get_evaluation_endpoint():
         mae_matrix_factorization,
         mae_content_based,
     ) = status.get_evaluation_results()
+    print(
+        f"RMSE All: {rmse_all}, RMSE Neighborhood: {rmse_neighborhood}, RMSE Matrix Factorization: {rmse_matrix_factorization}, RMSE Content Based: {rmse_content_based}"
+    )
 
     if rmse_all == 0:
         return (
