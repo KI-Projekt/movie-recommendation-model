@@ -178,7 +178,12 @@ def make_content_based_recommendations(user_ratings_input, cinema_movies_input):
     similarities = cosine_similarity([user_profile], kino_movie_features)[0]
     similarities = similarities * 100
 
-    # Schritt 4: Sortierung und Ausgabe
+    # Step 4: Invertiere Scores, wenn keine positiven Bewertungen vorhanden sind
+    if not has_positive_ratings:
+        max_score = 100
+        similarities = max_score - similarities
+
+    # Schritt 5: Sortierung und Ausgabe
     # Falls der Nutzer positive Bewertungen abgegeben hat, sortiere nach absteigender Ähnlichkeit
     # Andernfalls sortiere nach aufsteigender Ähnlichkeit
     cinema_movies_with_similarity = []
@@ -192,14 +197,9 @@ def make_content_based_recommendations(user_ratings_input, cinema_movies_input):
         }
         cinema_movies_with_similarity.append(kino_movie_with_similarity)
 
-    if has_positive_ratings:
-        sorted_cinema_movies = sorted(
-            cinema_movies_with_similarity, key=lambda x: x["score"], reverse=True
-        )
-    else:
-        sorted_cinema_movies = sorted(
-            cinema_movies_with_similarity, key=lambda x: x["score"]
-        )
+    sorted_cinema_movies = sorted(
+        cinema_movies_with_similarity, key=lambda x: x["score"], reverse=True
+    )
 
     return sorted_cinema_movies
 
